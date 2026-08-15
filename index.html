@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PT TerraByte | Pionir Teknologi Radar & Penginderaan Jauh Geospasial</title>
+  <meta name="description" content="Penyedia solusi radar pemetaan geografi presisi tinggi, Synthetic Aperture Radar (SAR), InSAR deformasi sub-milimeter, Airborne LiDAR, dan GPR untuk pertambangan, infrastruktur, dan geospasial nasional." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+            display: ['"Space Grotesk"', 'sans-serif']
+          },
+          colors: {
+            radar: {
+              50: '#ecfeff',
+              100: '#cffafe',
+              200: '#a5f3fc',
+              300: '#67e8f9',
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+              700: '#0e7490',
+              800: '#155e75',
+              900: '#164e63',
+              950: '#082f49',
+            },
+            obsidian: '#040711',
+            spaceDark: '#080d1a',
+            surfaceCard: '#0f172a'
+          },
+          backgroundImage: {
+            'geo-grid': 'linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px)',
+            'radial-glow': 'radial-gradient(circle at center, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+          },
+          backgroundSize: {
+            'grid-40': '40px 40px',
+          },
+          animation: {
+            'radar-spin': 'radarSpin 4s linear infinite',
+            'radar-pulse': 'radarPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+          },
+          keyframes: {
+            radarSpin: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            },
+            radarPulse: {
+              '0%': { transform: 'scale(0.8)', opacity: '0.9' },
+              '100%': { transform: 'scale(2.2)', opacity: '0' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            glowPulse: {
+              '0%, 100%': { opacity: '0.4' },
+              '50%': { opacity: '0.85' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="font-sans antialiased text-slate-200 selection:bg-cyan-500 selection:text-black bg-[#050814] bg-geo-grid bg-grid-40 min-h-screen flex flex-col overflow-x-hidden">
+
+  <!-- ========================================================
+       TOP TELEMETRY & SYSTEM STATUS BAR (REAL-TIME GEOSPATIAL)
+       ======================================================== -->
+  <div class="border-b border-cyan-500/10 bg-[#03060f]/95 text-[11px] font-mono py-1.5 px-4 sm:px-6 lg:px-8 hidden md:block text-slate-400 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-4 shrink-0">
+        <span class="flex items-center gap-1.5 text-cyan-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-400 font-sans text-[10px] uppercase tracking-wider">Orbit:</span>
+          <span class="font-bold text-cyan-300">SAR-SAT 4B ACTIVE</span>
+        </span>
+        <span class="text-slate-700">|</span>
+        <span class="text-slate-400 hidden lg:inline">GNSS: <span class="text-cyan-300 font-bold">32 SVs LOCKED</span></span>
+        <span class="text-slate-700 hidden lg:inline">|</span>
+        <span class="text-slate-400 hidden xl:inline">RTK SENSOR: <span class="text-emerald-400 font-bold">±0.8mm FIXED</span></span>
+      </div>
+      <div class="flex items-center gap-4 shrink-0 text-slate-400">
+        <span class="hidden sm:inline">COORDINATES: <span class="text-cyan-300 font-mono">-6.2088° S, 106.8456° E</span></span>
+        <span class="text-slate-700 hidden sm:inline">|</span>
+        <span>UTC: <span id="liveTime" class="text-white font-bold font-mono">00:00:00 UTC</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STICKY GLASSMORPHIC NAVBAR
+       ======================================================== -->
+  <header class="sticky top-0 z-40 w-full transition-all duration-300 bg-[#060a17]/90 backdrop-blur-xl border-b border-cyan-500/20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 gap-4">
+        
+        <!-- Brand Logo -->
+        <a href="#" class="flex items-center gap-3 group shrink-0">
+          <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-cyan-700 to-blue-900 flex items-center justify-center p-0.5 border border-cyan-400/40 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-400/40 transition-all">
+            <div class="w-full h-full bg-[#070d1e] rounded-[10px] flex items-center justify-center relative overflow-hidden">
+              <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.35)_0%,transparent_75%)]"></div>
+              
+              <!-- Clean Static Radar SVG Vector -->
+              <svg class="w-6 h-6 text-cyan-400 relative z-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Concentric Rings -->
+                <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35"/>
+                <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.55"/>
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.8"/>
+                
+                <!-- Crosshairs / Ticks -->
+                <line x1="12" y1="2.5" x2="12" y2="21.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.25"/>
+                <line x1="2.5" y1="12" x2="21.5" y2="12" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.25"/>
+                
+                <!-- Static 45° Sweep Sector with subtle gradient fill -->
+                <path d="M12 12 L19 5 A9.5 9.5 0 0 0 12 2.5 Z" fill="currentColor" fill-opacity="0.25"/>
+                <!-- Sweep Line -->
+                <line x1="12" y1="12" x2="19" y2="5" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+                
+                <!-- Center Target & Blip -->
+                <circle cx="12" cy="12" r="1.5" fill="#22d3ee"/>
+                <circle cx="15.5" cy="8.5" r="1" fill="#10b981"/>
+              </svg>
+            </div>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-lg font-extrabold tracking-wider text-white font-display flex items-center leading-none">
+              TerraByte<span class="text-cyan-400 ml-1">Company</span>
+            </span>
+            <span class="text-[9px] uppercase tracking-[0.22em] text-cyan-400/80 font-mono font-medium mt-1">Radar &amp; Remote Sensing</span>
+          </div>
+        </a>
+
+        <!-- Desktop Nav Links (Clean, Single Line, No Wrapping) -->
+        <nav class="hidden lg:flex items-center gap-1 xl:gap-2">
+          <a href="#teknologi" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide">
+            Teknologi
+          </a>
+          <a href="#simulasi" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            Simulasi HUD
+          </a>
+          <a href="#solusi" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide">
+            Solusi Industri
+          </a>
+          <a href="#estimator" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide">
+            Kalkulator Proyek
+          </a>
+          <a href="#portofolio" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide">
+            Portofolio
+          </a>
+          <a href="#keunggulan" class="px-3.5 py-2 rounded-lg text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 transition-all whitespace-nowrap text-[13px] font-medium tracking-wide">
+            Keunggulan
+          </a>
+        </nav>
+
+        <!-- CTA & Contact -->
+        <div class="hidden sm:flex items-center shrink-0">
+          <a href="https://wa.me/6281122334455?text=Halo%20GeoRadar%20Spatial,%20saya%20tertarik%20konsultasi%20mengenai%20teknologi%20pemetaan%20radar%20SAR/InSAR/LiDAR" 
+             target="_blank" 
+             class="relative inline-flex items-center justify-center p-0.5 overflow-hidden rounded-xl font-medium group shadow-lg shadow-cyan-950">
+            <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-500 via-blue-600 to-emerald-500 group-hover:from-cyan-400 group-hover:to-emerald-400 transition-all duration-300"></span>
+            <span class="relative px-4 py-2 transition-all ease-out bg-[#070e22] rounded-[10px] group-hover:bg-opacity-0 text-xs uppercase tracking-wider font-bold text-white flex items-center gap-2 whitespace-nowrap">
+              <svg class="w-3.5 h-3.5 text-cyan-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Minta Proposal
+            </span>
+          </a>
+        </div>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobileMenuBtn" class="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 focus:outline-none" aria-label="Open Menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path id="menuIconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-slate-800 bg-[#080d1d] px-6 py-5 space-y-3">
+      <a href="#teknologi" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Teknologi Radar &amp; Sensor</a>
+      <a href="#simulasi" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Simulasi HUD Scanner</a>
+      <a href="#solusi" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Solusi Industri</a>
+      <a href="#estimator" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Kalkulator Survei Spasial</a>
+      <a href="#portofolio" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Portofolio Proyek</a>
+      <a href="#keunggulan" class="block text-sm font-medium text-slate-300 hover:text-cyan-400 py-1.5">Keunggulan &amp; Standar BIG</a>
+      <div class="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+        <a href="https://wa.me/6281122334455?text=Halo%20GeoRadar%20Spatial,%20saya%20ingin%20jadwalkan%20konsultasi%20teknis" class="w-full text-center py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider">
+          Hubungi Tim Geospasial
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================
+       HERO SECTION WITH 360° RADAR HUD & SATELLITE TELEMETRY
+       ======================================================== -->
+  <section class="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden">
+    <!-- Radial Ambient Glows -->
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="absolute top-1/3 -left-40 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-10 right-0 w-[450px] h-[450px] bg-emerald-600/10 rounded-full blur-[130px] pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Left Column: Copy & High-Value Pitch -->
+        <div class="lg:col-span-7 space-y-7 text-left">
+          
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-wide shadow-inner">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span>NEXT-GEN SYNTHETIC APERTURE RADAR (SAR) &amp; LiDAR</span>
+          </div>
+
+          <!-- Headline -->
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-display leading-[1.15] text-white">
+            Pemetaan Geografi Presisi <br />
+            <span class="bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent">Menembus Awan, Kanopi, &amp; Kegelapan.</span>
+          </h1>
+
+          <!-- Description -->
+          <p class="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
+            Kami mengintegrasikan teknologi <strong>Spaceborne &amp; Airborne SAR</strong>, <strong>InSAR Deformasi Sub-Milimeter</strong>, serta <strong>Airborne LiDAR</strong> untuk memetakan topografi bumi 3D dan memantau stabilitas lereng tambang &amp; infrastruktur kritis tanpa batas cuaca 24/7.
+          </p>
+
+          <!-- Key Feature Pills -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/20 flex items-center space-x-2.5">
+              <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+              <span class="text-xs font-semibold text-slate-200">All-Weather (24/7)</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/20 flex items-center space-x-2.5">
+              <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+              <span class="text-xs font-semibold text-slate-200">Akurasi ±1.0 mm</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/20 flex items-center space-x-2.5 col-span-2 sm:col-span-1">
+              <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+              <span class="text-xs font-semibold text-slate-200">Standar BIG &amp; ESDM</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
+            <a href="#simulasi" class="px-7 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-sm transition-all duration-300 shadow-xl shadow-cyan-600/25 flex items-center justify-center gap-2 text-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" stroke-width="2"></circle>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v9l4 4"/>
+              </svg>
+              Eksplorasi Simulator Radar
+            </a>
+            <a href="#estimator" class="px-7 py-3.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/60 hover:border-cyan-500/50 text-slate-200 font-semibold rounded-xl text-sm transition-all duration-300 flex items-center justify-center gap-2 text-center">
+              <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              Hitung Kebutuhan Survei
+            </a>
+          </div>
+
+          <!-- Social Proof / Compliance snippet -->
+          <div class="pt-4 flex items-center gap-6 text-xs text-slate-400 border-t border-slate-800/80">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Tersertifikasi BIG (KUGI Compliant)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>ISO 9001:2015 &amp; ISO 27001</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Interactive High-Tech Radar HUD Canvas Component -->
+        <div class="lg:col-span-5 relative">
+          <div class="relative w-full max-w-lg mx-auto p-4 rounded-3xl bg-slate-900/85 backdrop-blur-2xl border border-cyan-500/35 shadow-[0_0_35px_-5px_rgba(6,182,212,0.25)]">
+            
+            <!-- Header of the HUD Container -->
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-cyan-500/30 text-xs font-mono">
+              <div class="flex items-center gap-2 text-cyan-300">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                <span>HUD SCANNER: <strong>ACTIVE</strong></span>
+              </div>
+              <div class="text-slate-400">
+                RANGE: <span class="text-emerald-400">50 KM (X-BAND)</span>
+              </div>
+            </div>
+
+            <!-- The Interactive HTML5 Radar Canvas -->
+            <div class="relative w-full aspect-square rounded-2xl bg-[#030713] overflow-hidden border border-cyan-500/40 shadow-inner flex items-center justify-center">
+              <canvas id="radarCanvas" width="450" height="450" class="w-full h-full cursor-crosshair"></canvas>
+              
+              <!-- Center Reticle Overlay -->
+              <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#22d3ee]"></div>
+                <!-- Crosshair ticks -->
+                <div class="absolute w-full h-[1px] bg-cyan-500/15"></div>
+                <div class="absolute h-full w-[1px] bg-cyan-500/15"></div>
+              </div>
+
+              <!-- Top Left Elevation Angle Indicator -->
+              <div class="absolute top-3 left-3 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-cyan-500/20 text-[10px] font-mono text-cyan-300 pointer-events-none">
+                <div>SWATH: <strong>40 KM</strong></div>
+                <div>INCIDENCE: <strong>38.4°</strong></div>
+              </div>
+
+              <!-- Bottom Target Tooltip Box (Dynamic) -->
+              <div id="targetTooltip" class="absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-cyan-400/40 text-[11px] font-mono text-slate-200 transition-all flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span id="targetName">Hover target pada radar...</span>
+                </div>
+                <span id="targetVal" class="text-cyan-400 font-bold">READY</span>
+              </div>
+            </div>
+
+            <!-- Bottom Sub-Telemetry Bar -->
+            <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-cyan-500/20 text-[11px] font-mono text-center">
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-cyan-500/10">
+                <div class="text-slate-400 text-[9px] uppercase">COHERENCE</div>
+                <div class="text-emerald-400 font-bold">γ = 0.94</div>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-cyan-500/10">
+                <div class="text-slate-400 text-[9px] uppercase">POLARISASI</div>
+                <div class="text-cyan-300 font-bold">VV + VH Quad</div>
+              </div>
+              <div class="bg-slate-900/60 p-2 rounded-lg border border-cyan-500/10">
+                <div class="text-slate-400 text-[9px] uppercase">RESOLUSI</div>
+                <div class="text-cyan-300 font-bold">0.5 m / px</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Metrics Ribbon Below Hero -->
+      <div class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl border border-cyan-500/20 shadow-lg shadow-black/40 text-center hover:border-cyan-400/50 transition-all">
+          <div class="text-3xl lg:text-4xl font-extrabold font-display bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent mb-1">500,000+</div>
+          <div class="text-xs uppercase tracking-wider text-cyan-400 font-mono font-medium">Hektar Dipetakan</div>
+          <p class="text-slate-400 text-xs mt-2">Wilayah tambang, kehutanan, &amp; koridor infrastruktur nasional.</p>
+        </div>
+
+        <div class="bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl border border-cyan-500/20 shadow-lg shadow-black/40 text-center hover:border-cyan-400/50 transition-all">
+          <div class="text-3xl lg:text-4xl font-extrabold text-emerald-400 font-display mb-1">± 0.8 mm</div>
+          <div class="text-xs uppercase tracking-wider text-emerald-400 font-mono font-medium">Presisi Deformasi</div>
+          <p class="text-slate-400 text-xs mt-2">Deteksi pergerakan lereng &amp; amblesan tanah (InSAR/D-InSAR).</p>
+        </div>
+
+        <div class="bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl border border-cyan-500/20 shadow-lg shadow-black/40 text-center hover:border-cyan-400/50 transition-all">
+          <div class="text-3xl lg:text-4xl font-extrabold font-display bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent mb-1">100%</div>
+          <div class="text-xs uppercase tracking-wider text-cyan-400 font-mono font-medium">Penetrasi Awan Tropis</div>
+          <p class="text-slate-400 text-xs mt-2">Frekuensi microwave X, C, dan L-band aktif tanpa henti 24/7.</p>
+        </div>
+
+        <div class="bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl border border-cyan-500/20 shadow-lg shadow-black/40 text-center hover:border-cyan-400/50 transition-all">
+          <div class="text-3xl lg:text-4xl font-extrabold text-cyan-300 font-display mb-1">&lt; 24 Jam</div>
+          <div class="text-xs uppercase tracking-wider text-cyan-400 font-mono font-medium">Rapid Delivery SLA</div>
+          <p class="text-slate-400 text-xs mt-2">Pipeline otomatisasi Cloud GIS untuk keputusan cepat tanggap.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       SECTION 1: CORE TECHNOLOGIES & RADAR MODALITIES
+       ======================================================== -->
+  <section id="teknologi" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    
+    <!-- Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
+        <span>Modalitas &amp; Ekosistem Sensor</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
+        Spektrum Teknologi Radar &amp; Penginderaan Jauh Terpadu
+      </h2>
+      <p class="text-slate-400 text-base leading-relaxed">
+        Kombinasi sensor aktif multi-platform (Satelit, Pesawat Udara, UAV Drone, dan Ground-Based) untuk menghadirkan data elevasi dan deformasi geospasial berkualitas tinggi.
+      </p>
+    </div>
+
+    <!-- Modalities 6-Grid Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <!-- Card 1: Spaceborne & Airborne SAR -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all">
+            <!-- SAR Satellite Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-cyan-400 font-semibold uppercase tracking-wider mb-2">Spaceborne &amp; Airborne</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-cyan-300 transition-colors">SAR (Synthetic Aperture Radar)</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Pencitraan microwave frekuensi X, C, dan L-Band yang menembus kanopi hutan lebat, kabut asap, dan awan tropis tebal untuk pemetaan topografi regional tanpa batasan cuaca.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Resolusi Spasial: hingga 0.25 m</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Spektrum: L-Band (Penetrasi Kanopi) &amp; X-Band</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Cakupan Area: Skala Provinsi / Ribuan Km²</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20konsultasi%20layanan%20SAR%20Imaging" class="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Spesifikasi Teknis SAR &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 2: InSAR & D-InSAR Displacement -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
+            <!-- Interferometry Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-emerald-400 font-semibold uppercase tracking-wider mb-2">Presisi Sub-Milimeter</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-emerald-300 transition-colors">InSAR &amp; PS-InSAR Deformasi</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Interferometri radar satelit untuk mengukur pergeseran lereng, amblesan tanah (land subsidence), dan stabilitas bendungan secara historis hingga pergerakan millimeter tahunan.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Presisi Vertikal: ± 1.0 mm / tahun</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Analisis Time-Series: Rekam jejak 10+ tahun</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Early Warning System (EWS) Otomatis</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20konsultasi%20layanan%20InSAR%20Monitoring" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Monitoring InSAR &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 3: Airborne LiDAR & Topographic Mapping -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all">
+            <!-- 3D Laser Mesh Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-blue-400 font-semibold uppercase tracking-wider mb-2">High-Density 3D Mesh</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors">Airborne LiDAR &amp; Bathymetri</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Akuisisi jutaan titik laser per detik untuk menghasilkan Digital Terrain Model (DTM), Digital Surface Model (DSM), dan kontur topografi teliti hingga perairan dangkal.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Kerapatan Point Cloud: &gt; 350 pts/m²</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Akurasi Vertikal: Root Mean Square (RMSE) &lt; 5 cm</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Bathymetry Green Laser untuk Kedalaman Air</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20konsultasi%20Airborne%20LiDAR" class="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Layanan LiDAR 3D &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 4: Ground Penetrating Radar (GPR) -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all">
+            <!-- Subsurface Scanning Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-amber-400 font-semibold uppercase tracking-wider mb-2">Subsurface Profiling</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-amber-300 transition-colors">GPR (Ground Penetrating Radar)</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Pemindaian geofisika non-destruktif untuk memetakan utilitas bawah tanah (pipa gas, kabel fiber, void/rongga batuan) dan ketebalan lapisan tanah dasar geoteknik.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Kedalaman Penetrasi: 0.5 m hingga 30 m</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Multi-Frekuensi: 100 MHz - 2.6 GHz</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>3D Tomografi Bawah Permukaan</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20konsultasi%20GPR%20Subsurface" class="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Pemindaian GPR &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 5: Real-Time Slope Stability Radar (GB-SAR) -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all">
+            <!-- GB-SAR Dish Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071a10 10 0 0114.142 0M1.394 9.393a15 15 0 0121.213 0"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-purple-400 font-semibold uppercase tracking-wider mb-2">Ground-Based Live Radar</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">GB-SAR Monitoring Tambang</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Radar terestrial pemantau dinding lereng tambang terbuka (open-pit) secara kontinyu interval 2 menit dengan alarm peringatan bahaya longsor otomatis.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>Jangkauan Deteksi: hingga 4.5 Km</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>Interval Scan: 2 - 5 Menit Real-Time</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>Siren &amp; Telemetri Trigger Integrasi</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20GB-SAR%20Mining%20Radar" class="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Sistem GB-SAR &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 6: AI-Powered Geospatial Analytics Engine -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300 group flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all">
+            <!-- AI Cloud Icon -->
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div class="text-[11px] font-mono text-cyan-400 font-semibold uppercase tracking-wider mb-2">Cloud GIS &amp; Machine Learning</div>
+          <h3 class="text-xl font-bold text-white mb-3 group-hover:text-cyan-300 transition-colors">TerraPulse AI</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Platform komputasi awan berbasis deep learning untuk segmentasi tutupan lahan, perhitungan volume cut &amp; fill otomatis, serta deteksi anomali spasial secara instan.
+          </p>
+          <div class="space-y-2 text-xs text-slate-300 mb-6 font-mono">
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Automated Change Detection</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Format Output: GeoTIFF, LAS, SHP, BIM</div>
+            <div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Interoperabilitas API &amp; WebGIS Dashboard</div>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate-800">
+          <a href="https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20AI%20Geospatial%20Platform" class="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            Pelajari Platform Analitik &rarr;
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ========================================================
+       SECTION 2: INTERACTIVE RADAR DATA SIMULATOR & MODALITY EXPLORER
+       ======================================================== -->
+  <section id="simulasi" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    <div class="bg-slate-900/85 backdrop-blur-2xl border border-cyan-500/35 shadow-[0_0_35px_-5px_rgba(6,182,212,0.25)] rounded-3xl p-6 sm:p-10">
+      
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 mb-8 border-b border-cyan-500/20">
+        <div>
+          <div class="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 mb-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            INTERACTIVE MODALITY EXPLORER
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white font-display">
+            Simulasi &amp; Karakteristik Output Data Radar
+          </h2>
+        </div>
+        
+        <!-- Tab Selector Buttons -->
+        <div class="flex flex-wrap gap-2 p-1.5 rounded-xl bg-slate-950/80 border border-slate-800" id="simTabs">
+          <button onclick="switchSimMode('sar')" id="tab-sar" class="px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all bg-cyan-500 text-black shadow-md">
+            1. SAR Microwave
+          </button>
+          <button onclick="switchSimMode('insar')" id="tab-insar" class="px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all text-slate-300 hover:text-white">
+            2. InSAR Deformasi
+          </button>
+          <button onclick="switchSimMode('lidar')" id="tab-lidar" class="px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all text-slate-300 hover:text-white">
+            3. LiDAR 3D Mesh
+          </button>
+          <button onclick="switchSimMode('gpr')" id="tab-gpr" class="px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all text-slate-300 hover:text-white">
+            4. GPR Subsurface
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content Area (Dynamic Interactive View) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Left: Interactive Visual Simulation Viewport -->
+        <div class="lg:col-span-7 bg-[#02050f] rounded-2xl p-6 border border-cyan-500/30 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-2xl">
+          
+          <!-- Top Telemetry Status -->
+          <div class="flex items-center justify-between text-xs font-mono text-cyan-400/80 border-b border-cyan-500/20 pb-3 z-10">
+            <span id="simSensorTag" class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+              SENSOR: <strong>RADAR SAT-X (9.65 GHz)</strong>
+            </span>
+            <span id="simStatusTag" class="text-emerald-400">COHERENCE: 0.96 (OPTIMAL)</span>
+          </div>
+
+          <!-- Dynamic Graphic Simulation Box -->
+          <div class="my-6 relative flex flex-col items-center justify-center text-center p-6" id="simDisplayArea">
+            
+            <!-- Graphic Background / Wave Simulation -->
+            <div id="simVisualLayer" class="w-full h-44 rounded-xl relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-950 border border-cyan-500/20">
+              <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(6,182,212,0.3)_0%,transparent_70%)]"></div>
+              
+              <!-- Content injected via JS -->
+              <div id="simVisualGraphic" class="relative z-10 space-y-2">
+                <div class="inline-block p-4 rounded-full bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 animate-float">
+                  <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                  </svg>
+                </div>
+                <div class="font-mono text-xs text-cyan-300 font-bold tracking-wider">ALL-WEATHER TOPOGRAPHY RENDERING</div>
+              </div>
+            </div>
+
+            <!-- Dynamic Scan Progress Bar -->
+            <div class="w-full mt-4 bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="simProgressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full w-[85%] transition-all duration-700"></div>
+            </div>
+            <div class="flex justify-between w-full text-[10px] font-mono text-slate-400 mt-1.5">
+              <span>PENETRASI AWAN: 100%</span>
+              <span id="simProcessingSpeed">PROCESS TIME: 4.2 ms/km²</span>
+            </div>
+
+          </div>
+
+          <!-- Bottom Coordinates readout -->
+          <div class="pt-3 border-t border-cyan-500/20 flex items-center justify-between text-[11px] font-mono text-slate-400 z-10">
+            <div>TARGET: <span id="simTargetArea" class="text-white">PIT KALIMANTAN TIMUR (IKN CORRIDOR)</span></div>
+            <div>CRS: <span class="text-cyan-300">WGS 84 / UTM ZONE 50S</span></div>
+          </div>
+
+        </div>
+
+        <!-- Right: Technical Specification Panel -->
+        <div class="lg:col-span-5 space-y-5 text-left">
+          <div>
+            <span id="simBadge" class="px-3 py-1 rounded-md bg-cyan-950 text-cyan-400 text-xs font-mono font-semibold border border-cyan-800">
+              MODALITAS UTAMA
+            </span>
+            <h3 id="simTitle" class="text-2xl font-bold text-white mt-2 font-display">
+              Synthetic Aperture Radar (SAR)
+            </h3>
+            <p id="simDesc" class="text-slate-300 text-sm mt-2 leading-relaxed">
+              Memanfaatkan gelombang microwave aktif untuk menembus tutupan awan tebal, kabut asap pembakaran, dan kanopi pohon lebat, menghasilkan citra amplitudo dan fase beresolusi tinggi siang maupun malam.
+            </p>
+          </div>
+
+          <!-- Spec Specs List -->
+          <div class="space-y-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-mono">
+            <div class="flex justify-between pb-2 border-b border-slate-800">
+              <span class="text-slate-400">Frekuensi Kerja:</span>
+              <span id="simSpecFreq" class="text-cyan-300 font-bold">X-Band (9.6 GHz) &amp; L-Band (1.2 GHz)</span>
+            </div>
+            <div class="flex justify-between pb-2 border-b border-slate-800">
+              <span class="text-slate-400">Resolusi Geometrik:</span>
+              <span id="simSpecRes" class="text-cyan-300 font-bold">0.5 m - 1.0 m / pixel</span>
+            </div>
+            <div class="flex justify-between pb-2 border-b border-slate-800">
+              <span class="text-slate-400">Sensitivitas Deformasi:</span>
+              <span id="simSpecAcc" class="text-emerald-400 font-bold">Sub-centimeter per pass</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Format Deliverables:</span>
+              <span id="simSpecDeliver" class="text-slate-200 font-bold">GeoTIFF, DEM, LAS/LAZ, SHP, Cloud GIS</span>
+            </div>
+          </div>
+
+          <!-- Direct CTA for this mode -->
+          <a id="simCtaBtn" href="https://wa.me/6281122334455?text=Halo,%20saya%20ingin%20konsultasi%20detail%20mengenai%20teknologi%20SAR%20Imaging" class="inline-flex items-center justify-center w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all duration-200 gap-2 shadow-lg shadow-cyan-600/30">
+            <span>Minta Sample Data &amp; Proposal SAR</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       SECTION 3: INDUSTRIAL APPLICATIONS & SOLUTIONS
+       ======================================================== -->
+  <section id="solusi" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
+        <span>Solusi Terapan Industri</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
+        Diterapkan di Sektor Kritis Nasional
+      </h2>
+      <p class="text-slate-400 text-base leading-relaxed">
+        Dari pertambangan nikel &amp; batubara hingga infrastruktur strategis negara, teknologi radar kami memberikan kepastian data berstandar geodetik presisi tinggi.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <!-- Industry 1: Mining & Geotechnical Slope -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Pertambangan &amp; Geoteknik Lereng</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Pemantauan deformasi lereng pit tambang terbuka (open pit) dan bendungan tailing secara milimeter. Mencegah bencana longsor dengan sistem alarm dini terintegrasi.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Perhitungan Volume Cut &amp; Fill Otomatis</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>InSAR Time-Series Tailing Dam Stability</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>Kepatuhan Regulasi Kepmen ESDM No. 1827</li>
+        </ul>
+      </div>
+
+      <!-- Industry 2: Strategic Infrastructure & Smart City / IKN -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Infrastruktur Strategis &amp; IKN</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Pemetaan topografi 3D koridor jalan tol, jembatan bentang panjang, rel kereta cepat, dan bendungan penahan banjir untuk perencanaan konstruksi presisi.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Digital Twin 3D Elevasi Koridor Trase</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Deteksi Amblesan Tanah (Land Subsidence)</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Integrasi Data CAD, GIS, &amp; BIM</li>
+        </ul>
+      </div>
+
+      <!-- Industry 3: Disaster Mitigation & Active Faults -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Mitigasi Bencana &amp; Vulkanologi</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Monitoring deformasi kubah lava gunung api aktif, pergeseran sesar aktif gempa bumi, serta pemetaan cepat luas genangan banjir saat kondisi cuaca ekstrem.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>SAR Flood Inundation Mapping Menembus Hujan</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Co-Seismic &amp; Post-Seismic Slip Modeling</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Dukungan Data Cepat Tanggap BNPB / BPBD</li>
+        </ul>
+      </div>
+
+      <!-- Industry 4: Forestry & Carbon Stock Monitoring -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Kehutanan &amp; Cadangan Karbon (ESG)</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Estimasi biomassa pohon di atas permukaan tanah (Above-Ground Biomass) melalui penetrasi gelombang L-Band radar untuk sertifikasi kredit karbon internasional.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>L-Band Canopy &amp; Stem Penetration</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>Deteksi Deforestasi &amp; Illegal Logging</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>Verifikasi ESG Karbon Verra / Plan Vivo</li>
+        </ul>
+      </div>
+
+      <!-- Industry 5: Maritime, Coastline & Bathymetry -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Kemaritiman &amp; Pengawasan Pesisir</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Deteksi tumpahan minyak (oil spill) di laut, pemantauan kapal ilegal (dark vessel tracking), serta pemetaan garis pantai dan batimetri perairan pelabuhan.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>SAR Ocean Surface Roughness / Slick Detection</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Airborne Bathymetric LiDAR 0 - 25m Depth</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Pemantauan Abrasi &amp; Sedimentasi Muara</li>
+        </ul>
+      </div>
+
+      <!-- Industry 6: Geodetic CORS & Regional Mapping -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all group">
+        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Infrastruktur CORS &amp; Geodesi</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+          Penyediaan stasiun referensi kontinu GNSS CORS untuk kalibrasi geodetik ground control points (GCP) yang menyempurnakan keakuratan data radar secara nasional.
+        </p>
+        <ul class="text-xs text-slate-300 space-y-2 border-t border-slate-800 pt-4">
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>NTRIP Caster RTK Multi-Constellation</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>Integrasi Jaring Kontrol Geodesi BIG</li>
+          <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>Solar-Powered Off-Grid Telemetry</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ========================================================
+       SECTION 4: INTERACTIVE PROJECT & SURVEY ESTIMATOR
+       ======================================================== -->
+  <section id="estimator" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    <div class="relative rounded-3xl bg-gradient-to-b from-[#091124] to-[#040814] p-8 sm:p-12 border border-cyan-500/30 shadow-2xl overflow-hidden">
+      
+      <!-- Background Grid Accent -->
+      <div class="absolute top-0 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="max-w-3xl mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest mb-3">
+          <span>Smart Survey Calculator</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display">
+          Kalkulator Estimasi Survei Geospasial
+        </h2>
+        <p class="text-slate-400 text-sm sm:text-base mt-2">
+          Sesuaikan parameter proyek Anda untuk mendapatkan rekomendasi metodologi sensor radar optimal, perkiraan durasi akuisisi, dan format deliverables.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        <!-- Left: Form Controls -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- 1. Luas Wilayah Slider -->
+          <div class="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-bold text-white flex items-center gap-2">
+                <span>Luas Area Survei:</span>
+              </label>
+              <span id="calcAreaVal" class="text-base font-mono font-bold text-cyan-400 bg-cyan-950/80 px-3 py-1 rounded-lg border border-cyan-500/30">
+                5,000 Hektar
+              </span>
+            </div>
+            <input type="range" id="calcAreaInput" min="50" max="50000" step="50" value="5000" 
+                   class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                   oninput="updateSurveyCalc()">
+            <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-2">
+              <span>50 Ha (Site Lokal)</span>
+              <span>10,000 Ha</span>
+              <span>50,000 Ha (Regional)</span>
+            </div>
+          </div>
+
+          <!-- 2. Karakteristik Medan & Tutupan -->
+          <div class="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
+            <label class="block text-sm font-bold text-white mb-3">Tipe Medan &amp; Tutupan Lahan:</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="calcTerrainGroup">
+              <button type="button" onclick="setCalcTerrain('mining')" id="terrain-mining" class="p-3 text-left rounded-xl border border-cyan-500 bg-cyan-950/50 text-white text-xs font-medium transition-all">
+                <div class="font-bold text-cyan-300">Tambang / Open Pit</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Lereng curam &amp; deformasi aktif</div>
+              </button>
+              <button type="button" onclick="setCalcTerrain('forest')" id="terrain-forest" class="p-3 text-left rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-medium hover:border-slate-500 transition-all">
+                <div class="font-bold text-slate-200">Hutan Kanopi Lebat</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Penetrasi gelombang L-Band</div>
+              </button>
+              <button type="button" onclick="setCalcTerrain('urban')" id="terrain-urban" class="p-3 text-left rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-medium hover:border-slate-500 transition-all">
+                <div class="font-bold text-slate-200">Infrastruktur / Urban</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Trase jalan, jembatan, gedung</div>
+              </button>
+              <button type="button" onclick="setCalcTerrain('coast')" id="terrain-coast" class="p-3 text-left rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-medium hover:border-slate-500 transition-all">
+                <div class="font-bold text-slate-200">Pesisir &amp; Perairan Dangkal</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Batimetri &amp; garis pasang surut</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Target Output Kebutuhan -->
+          <div class="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
+            <label class="block text-sm font-bold text-white mb-3">Tujuan Analisis / Output Utama:</label>
+            <select id="calcTargetOutput" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-400 font-mono" onchange="updateSurveyCalc()">
+              <option value="dtm">Model Elevasi 3D Digital (DEM / DTM Kontur Topografi)</option>
+              <option value="insar_disp">Pemantauan Deformasi &amp; Amblesan Tanah (Time-Series InSAR mm)</option>
+              <option value="biomass">Estimasi Stok Karbon &amp; Biomassa Kehutanan (ESG)</option>
+              <option value="gpr_util">Pemetaan Utilitas &amp; Geologi Bawah Permukaan (GPR 3D)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Right: Real-Time Calculated Estimate Card -->
+        <div class="lg:col-span-5 bg-[#030713] rounded-2xl p-6 sm:p-7 border border-cyan-500/40 flex flex-col justify-between shadow-2xl relative">
+          
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b border-cyan-500/20 text-xs font-mono">
+              <span class="text-cyan-400 font-bold uppercase">ESTIMASI REKOMENDASI TEKNIS</span>
+              <span class="text-emerald-400">READY TO PROPOSE</span>
+            </div>
+
+            <!-- Recommendation Summary Box -->
+            <div class="my-5 p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/20">
+              <div class="text-[11px] font-mono text-slate-400 uppercase">MODALITAS UTAMA DIREKOMENDASIKAN:</div>
+              <div id="calcResultSensor" class="text-lg font-bold font-display bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent mt-1">
+                SAR Satelit X-Band + InSAR Deformasi
+              </div>
+              <div id="calcResultFreq" class="text-xs font-mono text-cyan-300 mt-1">
+                Frekuensi: 9.65 GHz / Sub-milimeter monitoring
+              </div>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="space-y-3 text-xs font-mono text-slate-300">
+              <div class="flex justify-between pb-2 border-b border-slate-800">
+                <span class="text-slate-400">Estimasi Waktu Akuisisi:</span>
+                <span id="calcResultAcqTime" class="text-white font-bold">1 - 3 Hari Kerja</span>
+              </div>
+              <div class="flex justify-between pb-2 border-b border-slate-800">
+                <span class="text-slate-400">Waktu Pemrosesan Data:</span>
+                <span id="calcResultProcTime" class="text-white font-bold">3 - 5 Hari Kerja</span>
+              </div>
+              <div class="flex justify-between pb-2 border-b border-slate-800">
+                <span class="text-slate-400">Akurasi Vertikal (RMSE):</span>
+                <span id="calcResultAcc" class="text-emerald-400 font-bold">± 1.2 mm - 5.0 cm</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Output Standar:</span>
+                <span id="calcResultFormat" class="text-slate-200 font-bold">GeoTIFF, LAS/LAZ, SHP, PDF Report</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Direct Proposal Action -->
+          <div class="pt-6 border-t border-cyan-500/20 mt-6 space-y-3">
+            <a id="calcWhatsappLink" href="https://wa.me/6281122334455?text=Halo%20GeoRadar%20Spatial,%20saya%20ingin%20meminta%20proposal%20resmi%20untuk%20luas%205000%20Ha%20medan%20Mining" target="_blank" class="w-full py-3.5 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 text-center shadow-lg shadow-cyan-600/30">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              Kirim Spesifikasi ke Tim Engineer
+            </a>
+            <div class="text-[10px] text-center text-slate-500 font-mono">
+              *Estimasi bersifat indikatif teknis &amp; dapat disesuaikan dengan KAK/TOR proyek Anda.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       SECTION 5: WHY CHOOSE US (COMPARISON & STANDARDS)
+       ======================================================== -->
+  <section id="keunggulan" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
+        <span>Keunggulan Kompetitif</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
+        Mengapa Radar Geospasial Mengungguli Survei Optik Konvensional?
+      </h2>
+      <p class="text-slate-400 text-base leading-relaxed">
+        Di wilayah kepulauan Indonesia dengan tutupan awan rata-rata &gt;70% sepanjang tahun, radar adalah satu-satunya jaminan kontinuitas data tanpa kegagalan cuaca.
+      </p>
+    </div>
+
+    <!-- Modern Comparison Table -->
+    <div class="overflow-x-auto rounded-2xl border border-cyan-500/30 bg-slate-900/70 backdrop-blur-xl mb-16 shadow-xl">
+      <table class="w-full text-left text-sm text-slate-300 font-sans">
+        <thead class="bg-[#040816] text-xs font-mono uppercase text-slate-400 border-b border-cyan-500/20">
+          <tr>
+            <th class="py-4 px-6">Fitur &amp; Kemampuan</th>
+            <th class="py-4 px-6 text-cyan-400 bg-cyan-950/40 border-x border-cyan-500/30 font-bold">
+              PT GEORADAR SPATIAL (SAR / InSAR)
+            </th>
+            <th class="py-4 px-6 text-slate-400">Satelit Optik Konvensional</th>
+            <th class="py-4 px-6 text-slate-400">Drone Fotogrametri Biasa</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/80 font-normal">
+          <tr class="hover:bg-slate-900/40 transition-colors">
+            <td class="py-4 px-6 font-semibold text-white">Penetrasi Awan &amp; Asap Tebal</td>
+            <td class="py-4 px-6 bg-cyan-950/20 border-x border-cyan-500/20 text-emerald-400 font-bold flex items-center gap-2">
+              <svg class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              100% Tembus (All-Weather)
+            </td>
+            <td class="py-4 px-6 text-red-400">Gagal total jika tertutup awan</td>
+            <td class="py-4 px-6 text-amber-400">Terbatas batas awan rendah/hujan</td>
+          </tr>
+          <tr class="hover:bg-slate-900/40 transition-colors">
+            <td class="py-4 px-6 font-semibold text-white">Operasional Malam Hari (24/7)</td>
+            <td class="py-4 px-6 bg-cyan-950/20 border-x border-cyan-500/20 text-emerald-400 font-bold">
+              Ya (Sensor Aktif Sendiri)
+            </td>
+            <td class="py-4 px-6 text-red-400">Tidak (Membutuhkan Sinar Matahari)</td>
+            <td class="py-4 px-6 text-red-400">Tidak (Sensor RGB Pasif)</td>
+          </tr>
+          <tr class="hover:bg-slate-900/40 transition-colors">
+            <td class="py-4 px-6 font-semibold text-white">Presisi Deformasi &amp; Amblesan</td>
+            <td class="py-4 px-6 bg-cyan-950/20 border-x border-cyan-500/20 text-emerald-400 font-bold">
+              Sub-milimeter (± 1 mm/thn)
+            </td>
+            <td class="py-4 px-6 text-slate-500">Tidak Mampu</td>
+            <td class="py-4 px-6 text-slate-400">Hanya centimeter kasar (± 5-10 cm)</td>
+          </tr>
+          <tr class="hover:bg-slate-900/40 transition-colors">
+            <td class="py-4 px-6 font-semibold text-white">Penetrasi Kanopi Hutan Tropis</td>
+            <td class="py-4 px-6 bg-cyan-950/20 border-x border-cyan-500/20 text-emerald-400 font-bold">
+              Sangat Tinggi (L-Band Radar)
+            </td>
+            <td class="py-4 px-6 text-slate-500">Hanya melihat puncak pohon (DSM)</td>
+            <td class="py-4 px-6 text-slate-500">Hanya puncak kanopi</td>
+          </tr>
+          <tr class="hover:bg-slate-900/40 transition-colors">
+            <td class="py-4 px-6 font-semibold text-white">Cakupan Area Sekali Akuisisi</td>
+            <td class="py-4 px-6 bg-cyan-950/20 border-x border-cyan-500/20 text-cyan-300 font-bold">
+              100,000+ Ha (Skala Koridor/Provinsi)
+            </td>
+            <td class="py-4 px-6 text-slate-300">Luas (namun sering berawan)</td>
+            <td class="py-4 px-6 text-slate-400">Terbatas baterai drone (&lt;500 Ha/hari)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Certifications & Standard Compliance Badges -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+      <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold font-mono text-sm mb-3">
+          BIG
+        </div>
+        <div class="font-bold text-white text-sm">Kepatuhan Standar BIG</div>
+        <div class="text-xs text-slate-400 mt-1">KUGI &amp; Ketelitian Peta Skala 1:1000</div>
+      </div>
+      
+      <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm mb-3">
+          ISO
+        </div>
+        <div class="font-bold text-white text-sm">ISO 9001:2015</div>
+        <div class="text-xs text-slate-400 mt-1">Sistem Manajemen Mutu Geospasial</div>
+      </div>
+
+      <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold font-mono text-sm mb-3">
+          27K
+        </div>
+        <div class="font-bold text-white text-sm">ISO 27001:2022</div>
+        <div class="text-xs text-slate-400 mt-1">Keamanan Informasi &amp; Enkripsi Data</div>
+      </div>
+
+      <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold font-mono text-sm mb-3">
+          ESDM
+        </div>
+        <div class="font-bold text-white text-sm">Standar Kepmen ESDM</div>
+        <div class="text-xs text-slate-400 mt-1">Sertifikasi Keselamatan Geoteknik Tambang</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ========================================================
+       SECTION 6: FEATURED PROJECTS & CASE STUDIES
+       ======================================================== -->
+  <section id="portofolio" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
+        <span>Rekam Jejak Proyek</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
+        Implementasi Strategis di Lapangan
+      </h2>
+      <p class="text-slate-400 text-base leading-relaxed">
+        Studi kasus keberhasilan pemetaan radar dalam mengatasi tantangan medan terisolasi dan kebutuhan akurasi tanpa toleransi kegagalan.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Project 1 -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
+            <span class="text-cyan-400 font-semibold uppercase">SEKTOR PERTAMBANGAN NIKEL</span>
+            <span>MOROWALI, SULAWESI</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">
+            Monitoring InSAR Deformasi Lereng &amp; Tailing Dam 45,000 Ha
+          </h3>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            Pemasangan sistem peringatan dini deformasi radar satelit time-series untuk mendeteksi pergerakan micro-displacement pada dinding tambang aktif di tengah curah hujan tropis harian yang sangat tinggi.
+          </p>
+          <div class="grid grid-cols-3 gap-3 p-3 rounded-xl bg-[#030611] border border-cyan-500/20 text-center text-xs font-mono mb-6">
+            <div>
+              <div class="text-slate-400 text-[10px]">RESOLUSI</div>
+              <div class="text-cyan-300 font-bold">0.5 m / px</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">DEFORMASI</div>
+              <div class="text-emerald-400 font-bold">± 0.9 mm</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">UPTIME EWS</div>
+              <div class="text-white font-bold">99.9%</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-cyan-400">
+          Status: <span class="text-emerald-400 font-mono">Aktif Kontrak Multi-Tahun</span>
+        </div>
+      </div>
+
+      <!-- Project 2 -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
+            <span class="text-emerald-400 font-semibold uppercase">INFRASTRUKTUR IKN</span>
+            <span>KALIMANTAN TIMUR</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">
+            Pemetaan DTM 3D Topografi Koridor Jalan Tol &amp; Bendungan Sepaku
+          </h3>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            Kombinasi Airborne SAR L-Band dan LiDAR untuk menembus kanopi hutan sekunder lebat, menghasilkan model elevasi tanah dasar asli (bare-earth) untuk analisis cut-and-fill trase konstruksi IKN.
+          </p>
+          <div class="grid grid-cols-3 gap-3 p-3 rounded-xl bg-[#030611] border border-cyan-500/20 text-center text-xs font-mono mb-6">
+            <div>
+              <div class="text-slate-400 text-[10px]">LUAS AREA</div>
+              <div class="text-cyan-300 font-bold">28,000 Ha</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">RMSE VERTIKAL</div>
+              <div class="text-emerald-400 font-bold">&lt; 4.5 cm</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">DELIVERY</div>
+              <div class="text-white font-bold">14 Hari Kerja</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-cyan-400">
+          Status: <span class="text-emerald-400 font-mono">Selesai &amp; Terverifikasi BIG</span>
+        </div>
+      </div>
+
+      <!-- Project 3 -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
+            <span class="text-blue-400 font-semibold uppercase">TANGGUL PESISIR &amp; KOTA</span>
+            <span>JAKARTA - SEMARANG</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">
+            Analisis Land Subsidence &amp; Kerentanan Banjir Rob Pesisir Utara
+          </h3>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            Pemodelan amblesan tanah tahunan (2015-2025) menggunakan multi-temporal PS-InSAR satelit untuk mendukung rekomendasi perkuatan struktur tanggul laut dan mitigasi banjir rob.
+          </p>
+          <div class="grid grid-cols-3 gap-3 p-3 rounded-xl bg-[#030611] border border-cyan-500/20 text-center text-xs font-mono mb-6">
+            <div>
+              <div class="text-slate-400 text-[10px]">RENTANG DATA</div>
+              <div class="text-cyan-300 font-bold">10 Tahun</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">TITIK UKUR</div>
+              <div class="text-emerald-400 font-bold">2.4 Juta Titik</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">OUTPUT</div>
+              <div class="text-white font-bold">WebGIS Interactive</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-cyan-400">
+          Status: <span class="text-emerald-400 font-mono">Publikasi Riset &amp; Dashboard Pemprov</span>
+        </div>
+      </div>
+
+      <!-- Project 4 -->
+      <div class="bg-slate-900/70 backdrop-blur-xl border border-cyan-500/20 shadow-lg shadow-black/40 rounded-2xl p-7 hover:border-cyan-400/60 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
+            <span class="text-amber-400 font-semibold uppercase">GEOTEKNIK &amp; UTILITAS KOTA</span>
+            <span>SURABAYA &amp; BANDUNG</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">
+            3D Subsurface Mapping Jaringan Utilitas Bawah Tanah (GPR)
+          </h3>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            Survei GPR frekuensi ganda untuk mendeteksi jalur pipa gas bawah tanah dan saluran air sebelum penggalian proyek terowongan utilitas terpadu kota metropolitan.
+          </p>
+          <div class="grid grid-cols-3 gap-3 p-3 rounded-xl bg-[#030611] border border-cyan-500/20 text-center text-xs font-mono mb-6">
+            <div>
+              <div class="text-slate-400 text-[10px]">PANJANG KORIDOR</div>
+              <div class="text-cyan-300 font-bold">120 Km</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">KEDALAMAN</div>
+              <div class="text-emerald-400 font-bold">Hingga 6 Meter</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[10px]">AKURASI POSISI</div>
+              <div class="text-white font-bold">± 2.0 cm</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-cyan-400">
+          Status: <span class="text-emerald-400 font-mono">Selesai 100% Zero-Clash</span>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ========================================================
+       SECTION 7: CONSULTATION & DIRECT PROPOSAL REQUEST FORM
+       ======================================================== -->
+  <section id="kontak" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      
+      <!-- Left Info Column -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
+          <span>Inisiasi Kerjasama</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white font-display">
+          Siap Meningkatkan Kualitas Data Geospasial Proyek Anda?
+        </h2>
+        <p class="text-slate-300 text-base leading-relaxed">
+          Tim geodetic engineer dan remote sensing specialist kami siap memberikan konsultasi teknis, analisis kelayakan metode sensor, serta demonstrasi sample dataset.
+        </p>
+
+        <!-- Company Quick Facts -->
+        <div class="space-y-4 pt-4 text-sm text-slate-300 font-mono">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+            </div>
+            <div>
+              <strong class="text-white">Head Office:</strong> Jl. Raya Semplak No.52, RT.06/RW.01, Semplak, Kec. Bogor Bar., Kota Bogor, Jawa Barat 16114
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <div>
+              <strong class="text-white">Field Support & AI Hub:</strong> Lyka-Lyque Smash Burger
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+              <strong class="text-white">Email Hotline:</strong> <a href="mailto:info@lexterasurvey.com" class="text-cyan-400 hover:underline"> info@lexterasurvey.com</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Form Column -->
+      <div class="lg:col-span-7">
+        <div class="bg-slate-900/85 backdrop-blur-2xl border border-cyan-500/35 shadow-[0_0_35px_-5px_rgba(6,182,212,0.25)] rounded-3xl p-8">
+          <h3 class="text-xl font-bold text-white font-display mb-1">Formulir Permintaan Proposal &amp; Data</h3>
+          <p class="text-xs text-slate-400 mb-6">Isi formulir berikut dan sistem kami akan menyiapkan draf spesifikasi teknis untuk Anda.</p>
+
+          <form id="contactForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Nama Lengkap &amp; Gelar *</label>
+                <input type="text" id="formName" required placeholder="Ir. Budi Santoso, M.T." 
+                       class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans">
+              </div>
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Nama Perusahaan / Instansi *</label>
+                <input type="text" id="formCompany" required placeholder="PT Tambang Nusantara Tbk" 
+                       class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Email Korporat *</label>
+                <input type="email" id="formEmail" required placeholder="budi@perusahaan.co.id" 
+                       class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans">
+              </div>
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Nomor WhatsApp / Telp *</label>
+                <input type="tel" id="formPhone" required placeholder="081234567890" 
+                       class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Kebutuhan Teknologi Sensor</label>
+                <select id="formService" class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-400 font-sans">
+                  <option value="InSAR Deformasi">InSAR Monitoring Deformasi Sub-Milimeter</option>
+                  <option value="SAR All-Weather">SAR Pemetaan Topografi All-Weather</option>
+                  <option value="Airborne LiDAR">Airborne LiDAR &amp; Bathymetri 3D</option>
+                  <option value="GPR Subsurface">GPR Geofisika Bawah Permukaan</option>
+                  <option value="Custom Geodetic">Integrasi CORS &amp; Geodesi Kustom</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-mono text-slate-300 mb-1">Estimasi Luas Wilayah</label>
+                <input type="text" id="formArea" placeholder="Contoh: 10,000 Ha / 50 Km Trase" 
+                       class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-slate-300 mb-1">Deskripsi Singkat / Lokasi Proyek</label>
+              <textarea id="formMessage" rows="3" placeholder="Sebutkan lokasi proyek, tantangan medan, atau batas waktu penyelesaian yang diharapkan..." 
+                        class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans"></textarea>
+            </div>
+
+            <button type="submit" class="w-full py-4 px-6 bg-gradient-to-r from-cyan-500 via-blue-600 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-bold rounded-xl text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-xl shadow-cyan-600/30">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+              </svg>
+              Kirim Permintaan &amp; Hubungkan ke WhatsApp Engineer
+            </button>
+
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FOOTER (MODERN HIGH-TECH CORPORATE)
+       ======================================================== -->
+  <footer class="mt-auto border-t border-cyan-950 bg-[#03060f] text-slate-400 text-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+        
+        <!-- Col 1: Brand Info -->
+        <div class="lg:col-span-2 space-y-4">
+          <a href="#" class="flex items-center space-x-3 group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-cyan-700 to-blue-900 flex items-center justify-center p-0.5 shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
+              <div class="w-full h-full bg-[#070d1e] rounded-[10px] flex items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.35)_0%,transparent_75%)]"></div>
+                <!-- Clean Static Radar SVG Vector -->
+                <svg class="w-6 h-6 text-cyan-400 relative z-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35"/>
+                  <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.55"/>
+                  <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.8"/>
+                  <line x1="12" y1="2.5" x2="12" y2="21.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.25"/>
+                  <line x1="2.5" y1="12" x2="21.5" y2="12" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.25"/>
+                  <path d="M12 12 L19 5 A9.5 9.5 0 0 0 12 2.5 Z" fill="currentColor" fill-opacity="0.25"/>
+                  <line x1="12" y1="12" x2="19" y2="5" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="12" cy="12" r="1.5" fill="#22d3ee"/>
+                  <circle cx="15.5" cy="8.5" r="1" fill="#10b981"/>
+                </svg>
+              </div>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-base font-extrabold tracking-wider text-white font-display">
+                PT TerraByte<span class="text-cyan-400 ml-1">Company</span>
+              </span>
+              <span class="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-mono">Radar &amp; Remote Sensing Ltd.</span>
+            </div>
+          </a>
+          
+          <p class="text-slate-400 text-xs leading-relaxed max-w-sm">
+            Perusahaan penyedia teknologi pemetaan geografi berbasis Synthetic Aperture Radar (SAR), InSAR, dan LiDAR terkemuka di Indonesia dengan akurasi terverifikasi geodetik nasional.
+          </p>
+
+          <!-- System Status Capsule -->
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>SYSTEM UPTIME: <strong class="text-white">99.98%</strong></span>
+          </div>
+        </div>
+
+        <!-- Col 2: Teknologi -->
+        <div class="space-y-3">
+          <div class="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">Teknologi Sensor</div>
+          <ul class="space-y-2 text-xs">
+            <li><a href="#teknologi" class="hover:text-cyan-400 transition-colors">Airborne &amp; Satellite SAR</a></li>
+            <li><a href="#teknologi" class="hover:text-cyan-400 transition-colors">InSAR Slope Displacement</a></li>
+            <li><a href="#teknologi" class="hover:text-cyan-400 transition-colors">Airborne 3D LiDAR</a></li>
+            <li><a href="#teknologi" class="hover:text-cyan-400 transition-colors">Ground Penetrating Radar</a></li>
+            <li><a href="#teknologi" class="hover:text-cyan-400 transition-colors">Real-Time GB-SAR</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Solusi Industri -->
+        <div class="space-y-3">
+          <div class="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">Sektor Industri</div>
+          <ul class="space-y-2 text-xs">
+            <li><a href="#solusi" class="hover:text-cyan-400 transition-colors">Pertambangan &amp; Tailing Dam</a></li>
+            <li><a href="#solusi" class="hover:text-cyan-400 transition-colors">Infrastruktur IKN &amp; Tol</a></li>
+            <li><a href="#solusi" class="hover:text-cyan-400 transition-colors">Mitigasi Bencana &amp; Vulkanologi</a></li>
+            <li><a href="#solusi" class="hover:text-cyan-400 transition-colors">Kehutanan &amp; Karbon ESG</a></li>
+            <li><a href="#solusi" class="hover:text-cyan-400 transition-colors">Pesisir &amp; Kemaritiman</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Legal & Kontak -->
+        <div class="space-y-3">
+          <div class="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">Kontak Cepat</div>
+          <ul class="space-y-2 text-xs font-mono">
+            <li class="text-slate-300">WA: +62 811-2233-4455</li>
+            <li class="text-slate-300">Tel: (021) 5299-8800</li>
+            <li class="text-slate-300">Jakarta &amp; Bandung</li>
+            <li class="pt-2">
+              <a href="https://wa.me/6281122334455" class="inline-block px-3 py-1.5 bg-cyan-600/20 text-cyan-400 border border-cyan-500/40 rounded-lg hover:bg-cyan-600 hover:text-white transition-all text-[11px]">
+                Konsultasi WhatsApp &rarr;
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Copyright & Compliance Line -->
+      <div class="mt-12 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4 font-mono">
+        <div>
+          &copy; 2026 PT TerraByte Company. Hak Cipta Dilindungi Undang-Undang.
+        </div>
+        <div class="flex items-center space-x-6">
+          <span>BIG Registered Geomatics Firm</span>
+          <span>ISO 9001 / ISO 27001</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       INTERACTIVE JAVASCRIPT LOGIC
+       ======================================================== -->
+  <script>
+    // 1. Live Telemetry UTC Clock
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toUTCString().split(' ')[4] + ' UTC';
+      const timeEl = document.getElementById('liveTime');
+      if (timeEl) timeEl.innerText = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. Mobile Menu Toggle
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileBtn && mobileMenu) {
+      mobileBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+
+    // 3. Radar HUD 360 Canvas Simulation
+    const canvas = document.getElementById('radarCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      let angle = 0;
+      let width = canvas.width;
+      let height = canvas.height;
+      let centerX = width / 2;
+      let centerY = height / 2;
+      let radius = width / 2 - 20;
+
+      // Simulated targets on radar (anomalies / mines / dams / settlements)
+      const radarTargets = [
+        { id: 1, dist: 0.35, angle: 0.8, name: "Pit Tambang Barat", type: "Slope Deformasi", val: "-0.4mm/pass", alert: true },
+        { id: 2, dist: 0.65, angle: 2.2, name: "Bendungan Utama", type: "Struktur Stabil", val: "±0.1mm", alert: false },
+        { id: 3, dist: 0.80, angle: 4.1, name: "Koridor Trase Tol", type: "LiDAR DTM Mesh", val: "99.8% Coherence", alert: false },
+        { id: 4, dist: 0.50, angle: 5.4, name: "Sesar Aktif Geologi", type: "Micro Displacement", val: "+1.2mm", alert: true },
+      ];
+
+      function drawRadar() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Background Grid Rings
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.18)';
+        ctx.lineWidth = 1;
+        
+        for (let r = 1; r <= 4; r++) {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, (radius / 4) * r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Distance labels
+          ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
+          ctx.font = '9px "JetBrains Mono"';
+          ctx.fillText((r * 12.5) + ' km', centerX + 4, centerY - (radius / 4) * r + 11);
+        }
+
+        // Concentric Crosshair Angles
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)';
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(centerX + Math.cos(a) * radius, centerY + Math.sin(a) * radius);
+          ctx.stroke();
+        }
+
+        // Rotating Sweep Beam
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle);
+
+        // Gradient Sweep Sector
+        const sweepGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        sweepGrad.addColorStop(0, 'rgba(6, 182, 212, 0.05)');
+        sweepGrad.addColorStop(0.8, 'rgba(6, 182, 212, 0.35)');
+        sweepGrad.addColorStop(1, 'rgba(34, 211, 238, 0.6)');
+
+        ctx.fillStyle = sweepGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, -0.4, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Leading Sweep Line
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(radius, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw Targets & Detection Glow
+        radarTargets.forEach(t => {
+          const tx = centerX + Math.cos(t.angle) * (t.dist * radius);
+          const ty = centerY + Math.sin(t.angle) * (t.dist * radius);
+
+          // Calculate angle difference to current sweep beam
+          let diff = (angle - t.angle) % (Math.PI * 2);
+          if (diff < 0) diff += Math.PI * 2;
+
+          // Intensity based on recent sweep pass
+          let intensity = 0.2;
+          if (diff < 0.8) {
+            intensity = 1.0 - (diff / 0.8) * 0.8;
+          }
+
+          ctx.save();
+          if (t.alert) {
+            ctx.fillStyle = `rgba(239, 68, 68, ${intensity})`;
+            ctx.strokeStyle = `rgba(239, 68, 68, ${intensity})`;
+            ctx.shadowColor = '#ef4444';
+          } else {
+            ctx.fillStyle = `rgba(16, 185, 129, ${intensity})`;
+            ctx.strokeStyle = `rgba(16, 185, 129, ${intensity})`;
+            ctx.shadowColor = '#10b981';
+          }
+          ctx.shadowBlur = intensity * 12;
+
+          ctx.beginPath();
+          ctx.arc(tx, ty, 4 + intensity * 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Target reticle box
+          ctx.strokeRect(tx - 6, ty - 6, 12, 12);
+          ctx.restore();
+        });
+
+        // Increment angle for 60fps rotation
+        angle += 0.025;
+        if (angle >= Math.PI * 2) angle = 0;
+
+        requestAnimationFrame(drawRadar);
+      }
+
+      drawRadar();
+
+      // Mouse interactive target hover on canvas
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        let hovered = false;
+        radarTargets.forEach(t => {
+          const tx = centerX + Math.cos(t.angle) * (t.dist * radius);
+          const ty = centerY + Math.sin(t.angle) * (t.dist * radius);
+          const dist = Math.hypot(mx - tx, my - ty);
+
+          if (dist < 20) {
+            hovered = true;
+            document.getElementById('targetName').innerText = `${t.name} (${t.type})`;
+            document.getElementById('targetVal').innerText = t.val;
+            document.getElementById('targetTooltip').classList.add('border-cyan-300', 'bg-slate-900');
+          }
+        });
+
+        if (!hovered) {
+          document.getElementById('targetName').innerText = "Hover target pada radar...";
+          document.getElementById('targetVal').innerText = "SCANNING";
+        }
+      });
+    }
+
+    // 4. Interactive Simulation Mode Switcher
+    const simModes = {
+      sar: {
+        badge: "MODALITAS UTAMA: ALL-WEATHER",
+        title: "Synthetic Aperture Radar (SAR)",
+        desc: "Memanfaatkan gelombang microwave aktif untuk menembus tutupan awan tebal, kabut asap pembakaran, dan kanopi pohon lebat, menghasilkan citra amplitudo dan fase beresolusi tinggi siang maupun malam.",
+        sensorTag: "SENSOR: RADAR SAT-X (9.65 GHz)",
+        statusTag: "COHERENCE: 0.96 (OPTIMAL)",
+        targetArea: "PIT KALIMANTAN TIMUR (IKN CORRIDOR)",
+        specFreq: "X-Band (9.6 GHz) & L-Band (1.2 GHz)",
+        specRes: "0.5 m - 1.0 m / pixel",
+        specAcc: "Sub-centimeter per pass",
+        specDeliver: "GeoTIFF, DEM, LAS/LAZ, SHP, Cloud GIS",
+        graphicText: "ALL-WEATHER TOPOGRAPHY RENDERING",
+        speed: "PROCESS TIME: 4.2 ms/km²",
+        ctaText: "Minta Sample Data & Proposal SAR"
+      },
+      insar: {
+        badge: "DEFORMASI SUB-MILIMETER",
+        title: "Interferometric SAR (InSAR / D-InSAR)",
+        desc: "Menganalisis perbedaan fase gelombang radar antar-lintasan satelit secara multi-temporal (PS-InSAR & SBAS) untuk memetakan pergerakan lereng tambang dan amblesan tanah (subsidence) dengan akurasi orde milimeter.",
+        sensorTag: "SENSOR: SENTINEL-1 / COSMO-SKYMED",
+        statusTag: "DISPLACEMENT RESOLUTION: ±0.8 mm/yr",
+        targetArea: "TAILING DAM & PIT MOROWALI",
+        specFreq: "C-Band (5.4 GHz) / X-Band (9.6 GHz)",
+        specRes: "1.0 m / grid point",
+        specAcc: "± 0.8 mm - 1.5 mm / tahun",
+        specDeliver: "Heatmap Deformasi mm, Time-Series Graph, EWS API",
+        graphicText: "MILLIMETER SUBSIDENCE HEATMAP",
+        speed: "PROCESS TIME: 24h Automated InSAR Pipeline",
+        ctaText: "Minta Proposal InSAR Monitoring"
+      },
+      lidar: {
+        badge: "HIGH DENSITY 3D MESH",
+        title: "Airborne LiDAR & 3D Topography",
+        desc: "Pemindaian laser multi-pulse dari wahana udara untuk klasifikasi otomatis titik kanopi vegetasi vs tanah asli (bare-earth) hingga penetrasi perairan dangkal (Bathymetric Green Laser).",
+        sensorTag: "SENSOR: AIRBORNE DUAL LASER 1550nm/532nm",
+        statusTag: "POINT DENSITY: 380 PTS/M²",
+        targetArea: "KORIDOR TRASE TOL TRANS-SUMATERA",
+        specFreq: "Infrared (1550 nm) & Green (532 nm)",
+        specRes: "Point Spacing < 0.05 m",
+        specAcc: "RMSE Vertikal < 4.5 cm",
+        specDeliver: "LAS/LAZ Point Cloud, DTM/DSM 3D, Kontur CAD",
+        graphicText: "3D CLASSIFIED POINT CLOUD MESH",
+        speed: "PROCESS TIME: 200,000 pts/detik Real-time",
+        ctaText: "Minta Sample Dataset LiDAR"
+      },
+      gpr: {
+        badge: "SUBSURFACE SCANNING",
+        title: "Ground Penetrating Radar (GPR)",
+        desc: "Pemetaan geofisika elektromagnetik bawah permukaan non-destruktif untuk mengidentifikasi jaringan utilitas tertanam, pipa, rongga batuan, dan stabilitas lapisan geoteknik dasar.",
+        sensorTag: "SENSOR: 3D MULTI-CHANNEL GPR ARRAY",
+        statusTag: "SUBSURFACE DEPTH: UP TO 25 METERS",
+        targetArea: "KAWASAN INDUSTRI SCBD & METROPOLITAN",
+        specFreq: "200 MHz - 900 MHz Stepped Frequency",
+        specRes: "Kedalaman vertikal hingga 1.5 cm",
+        specAcc: "Horizontal ± 2.0 cm",
+        specDeliver: "3D Tomografi Slice, CAD Utility Map, GIS Layer",
+        graphicText: "SUBSURFACE STRATIGRAPHY & PIPELINE SCAN",
+        speed: "PROCESS TIME: Instant Live Radargram",
+        ctaText: "Minta Layanan Survei GPR"
+      }
+    };
+
+    function switchSimMode(modeKey) {
+      const mode = simModes[modeKey];
+      if (!mode) return;
+
+      // Update active tab styles
+      ['sar', 'insar', 'lidar', 'gpr'].forEach(k => {
+        const btn = document.getElementById(`tab-${k}`);
+        if (btn) {
+          if (k === modeKey) {
+            btn.className = "px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all bg-cyan-500 text-black shadow-md";
+          } else {
+            btn.className = "px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all text-slate-300 hover:text-white";
+          }
+        }
+      });
+
+      // Update text fields
+      document.getElementById('simBadge').innerText = mode.badge;
+      document.getElementById('simTitle').innerText = mode.title;
+      document.getElementById('simDesc').innerText = mode.desc;
+      document.getElementById('simSensorTag').innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span> ${mode.sensorTag}`;
+      document.getElementById('simStatusTag').innerText = mode.statusTag;
+      document.getElementById('simTargetArea').innerText = mode.targetArea;
+      document.getElementById('simSpecFreq').innerText = mode.specFreq;
+      document.getElementById('simSpecRes').innerText = mode.specRes;
+      document.getElementById('simSpecAcc').innerText = mode.specAcc;
+      document.getElementById('simSpecDeliver').innerText = mode.specDeliver;
+      document.getElementById('simVisualGraphic').querySelector('.font-mono').innerText = mode.graphicText;
+      document.getElementById('simProcessingSpeed').innerText = mode.speed;
+      
+      const ctaBtn = document.getElementById('simCtaBtn');
+      if (ctaBtn) {
+        ctaBtn.querySelector('span').innerText = mode.ctaText;
+        ctaBtn.href = `https://wa.me/6281122334455?text=Halo,%20saya%20tertarik%20konsultasi%20mengenai%20layanan%20${encodeURIComponent(mode.title)}`;
+      }
+    }
+
+    // 5. Smart Project Estimator Calculator Logic
+    let currentTerrain = 'mining';
+
+    function setCalcTerrain(t) {
+      currentTerrain = t;
+      ['mining', 'forest', 'urban', 'coast'].forEach(k => {
+        const el = document.getElementById(`terrain-${k}`);
+        if (el) {
+          if (k === t) {
+            el.className = "p-3 text-left rounded-xl border border-cyan-500 bg-cyan-950/50 text-white text-xs font-medium transition-all";
+            el.querySelector('.font-bold').className = "font-bold text-cyan-300";
+          } else {
+            el.className = "p-3 text-left rounded-xl border border-slate-700 bg-slate-900 text-slate-300 text-xs font-medium hover:border-slate-500 transition-all";
+            el.querySelector('.font-bold').className = "font-bold text-slate-200";
+          }
+        }
+      });
+      updateSurveyCalc();
+    }
+
+    function updateSurveyCalc() {
+      const area = parseInt(document.getElementById('calcAreaInput').value);
+      const targetOutput = document.getElementById('calcTargetOutput').value;
+
+      document.getElementById('calcAreaVal').innerText = `${area.toLocaleString('id-ID')} Hektar`;
+
+      let sensorName = "SAR Satelit X-Band + InSAR Deformasi";
+      let sensorFreq = "Frekuensi: 9.65 GHz / Sub-milimeter monitoring";
+      let acqTime = "1 - 3 Hari";
+      let procTime = "3 - 5 Hari";
+      let accuracy = "± 1.2 mm - 5.0 cm";
+      let format = "GeoTIFF, LAS/LAZ, SHP, Cloud GIS";
+
+      if (targetOutput === 'insar_disp') {
+        sensorName = "Multi-Temporal Spaceborne InSAR (PS & SBAS)";
+        sensorFreq = "Frekuensi: C-Band / X-Band Dual Orbit";
+        acqTime = "Arsip 24 Jam + Real-time Pass";
+        procTime = "2 - 4 Hari";
+        accuracy = "± 0.8 mm / tahun";
+        format = "Deformation Heatmap, Time-series CSV, WebGIS";
+      } else if (targetOutput === 'biomass' || currentTerrain === 'forest') {
+        sensorName = "Airborne SAR L-Band (Canopy Penetration) + LiDAR";
+        sensorFreq = "Frekuensi: 1.2 GHz (L-Band) Full Polarimetri";
+        acqTime = area > 10000 ? "4 - 7 Hari" : "2 - 3 Hari";
+        procTime = "5 - 7 Hari";
+        accuracy = "Estimasi Biomassa R² > 0.88";
+        format = "Above-Ground Biomass Raster, Carbon Report";
+      } else if (targetOutput === 'gpr_util') {
+        sensorName = "3D Multi-Array Ground Penetrating Radar (GPR)";
+        sensorFreq = "Dual Frequency 400MHz / 900MHz";
+        acqTime = `${Math.ceil(area / 500)} - ${Math.ceil(area / 200)} Hari Lapangan`;
+        procTime = "3 - 5 Hari";
+        accuracy = "Horizontal ±2cm / Vertikal ±1.5cm";
+        format = "3D CAD Utility Mapping, GIS Geodatabase";
+      } else if (currentTerrain === 'coast') {
+        sensorName = "Airborne Bathymetric Green LiDAR + C-Band SAR";
+        sensorFreq = "532 nm Hydrographic Laser + 5.4 GHz SAR";
+        acqTime = "2 - 4 Hari";
+        procTime = "4 - 6 Hari";
+        accuracy = "Kedalaman 0 - 25m (IHO Special Order)";
+        format = "Bathymetry DTM, Coastline Vector, Hydro Chart";
+      }
+
+      document.getElementById('calcResultSensor').innerText = sensorName;
+      document.getElementById('calcResultFreq').innerText = sensorFreq;
+      document.getElementById('calcResultAcqTime').innerText = acqTime;
+      document.getElementById('calcResultProcTime').innerText = procTime;
+      document.getElementById('calcResultAcc').innerText = accuracy;
+      document.getElementById('calcResultFormat').innerText = format;
+
+      const waMsg = `Halo GeoRadar Spatial, saya ingin konsultasi estimasi proyek luas ${area.toLocaleString('id-ID')} Ha, medan: ${currentTerrain}, output: ${targetOutput}.`;
+      document.getElementById('calcWhatsappLink').href = `https://wa.me/6281122334455?text=${encodeURIComponent(waMsg)}`;
+    }
+
+    // 6. Contact Form Dispatcher
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('formName').value;
+      const company = document.getElementById('formCompany').value;
+      const email = document.getElementById('formEmail').value;
+      const phone = document.getElementById('formPhone').value;
+      const service = document.getElementById('formService').value;
+      const area = document.getElementById('formArea').value;
+      const msg = document.getElementById('formMessage').value;
+
+      const fullText = `*INQUIRY PROYEK GEORADAR SPATIAL*\n\nNama: ${name}\nPerusahaan: ${company}\nEmail: ${email}\nWhatsApp: ${phone}\nLayanan: ${service}\nLuas Wilayah: ${area}\nCatatan: ${msg}`;
+      
+      const targetUrl = `https://wa.me/6281122334455?text=${encodeURIComponent(fullText)}`;
+      window.open(targetUrl, '_blank');
+      alert(`Terima kasih Bapak/Ibu ${name}. Draf proposal teknis Anda telah diteruskan ke tim geospasial kami.`);
+    }
+
+    // Initialize Calculator
+    updateSurveyCalc();
+  </script>
+
+</body>
+</html>
